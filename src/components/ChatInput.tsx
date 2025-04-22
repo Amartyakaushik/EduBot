@@ -2,17 +2,24 @@ import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import { KeyboardEvent, useState } from 'react';
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => Promise<void>;
   isLoading?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSend = () => {
-    if (message.trim() && !isLoading) {
-      onSendMessage(message.trim());
+  const handleSend = async () => {
+    if (message.trim() && !isLoading && !isSending) {
+      const messageToSend = message.trim();
       setMessage('');
+      setIsSending(true);
+      try {
+        await onSendMessage(messageToSend);
+      } finally {
+        setIsSending(false);
+      }
     }
   };
 
@@ -32,11 +39,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
         placeholder="Type your message..."
         className="flex-1 resize-none rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         rows={1}
-        disabled={isLoading}
+        disabled={isLoading || isSending}
       />
       <button
         onClick={handleSend}
-        disabled={!message.trim() || isLoading}
+        disabled={!message.trim() || isLoading || isSending}
         className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:bg-gray-300"
       >
         <PaperAirplaneIcon className="h-5 w-5" />

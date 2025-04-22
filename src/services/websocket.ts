@@ -1,4 +1,5 @@
 import { WebSocketMessage } from '@/types';
+import { generateAIResponse } from './ai';
 
 class WebSocketService {
   private static instance: WebSocketService;
@@ -21,17 +22,39 @@ class WebSocketService {
     console.log('Simulated connection closed');
   }
 
-  public sendMessage(message: WebSocketMessage) {
-    // Simulate AI response after 1 second
-    setTimeout(() => {
-      const aiResponse = this.generateAIResponse(message.payload.content);
+  public async sendMessage(message: WebSocketMessage) {
+    try {
+      // Show typing indicator
       this.callbacks.forEach(callback => 
+        callback({
+          type: 'typing',
+          payload: { isTyping: true }
+        })
+      );
+
+      // Generate AI response
+      const aiResponse = await generateAIResponse(message.payload.content);
+
+      // Hide typing indicator and send response
+      this.callbacks.forEach(callback => {
+        callback({
+          type: 'typing',
+          payload: { isTyping: false }
+        });
         callback({
           type: 'message',
           payload: { content: aiResponse }
+        });
+      });
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      this.callbacks.forEach(callback => 
+        callback({
+          type: 'message',
+          payload: { content: "I apologize, there was an error generating a response. Please try again." }
         })
       );
-    }, 1000);
+    }
   }
 
   public onMessage(callback: (message: WebSocketMessage) => void) {
@@ -39,22 +62,7 @@ class WebSocketService {
   }
 
   public onTyping(callback: (isTyping: boolean) => void) {
-    // Simulate typing indicator
-    callback(true);
-    setTimeout(() => callback(false), 800);
-  }
-
-  private generateAIResponse(userMessage: string): string {
-    // Simple response generation based on user input
-    const responses = [
-      `I understand your point about "${userMessage}". Let me explain further...`,
-      `That's an interesting perspective on "${userMessage}". Here's what I think...`,
-      `Regarding "${userMessage}", let me share some educational insights...`,
-      `Your question about "${userMessage}" is important. Here's what you need to know...`,
-      `Let's explore "${userMessage}" in more detail...`
-    ];
-    
-    return responses[Math.floor(Math.random() * responses.length)];
+    // Handled through regular message callbacks now
   }
 }
 

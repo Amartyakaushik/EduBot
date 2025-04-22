@@ -3,6 +3,7 @@ export interface Message {
   content: string;
   sender: 'user' | 'ai';
   timestamp: number;
+  category?: 'programming' | 'math' | 'science' | 'general';
 }
 
 export interface ChatState {
@@ -10,6 +11,7 @@ export interface ChatState {
   isLoading: boolean;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   setLoading: (loading: boolean) => void;
+  clearMessages: () => void;
 }
 
 export interface User {
