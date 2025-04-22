@@ -1,69 +1,139 @@
-import { WebSocketMessage } from '@/types';
 import { generateAIResponse } from './ai';
 
-class WebSocketService {
-  private static instance: WebSocketService;
-  private callbacks: ((message: WebSocketMessage) => void)[] = [];
+export class WebSocketService {
+  private socket: WebSocket | null = null;
+  private messageQueue: string[] = [];
+  private isProcessing = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+  private typingTimeout: NodeJS.Timeout | null = null;
 
-  private constructor() {}
-
-  public static getInstance(): WebSocketService {
-    if (!WebSocketService.instance) {
-      WebSocketService.instance = new WebSocketService();
-    }
-    return WebSocketService.instance;
+  constructor(private url: string) {
+    this.connect();
   }
 
-  public connect() {
-    console.log('Simulated connection established');
+  private connect() {
+    try {
+      this.socket = new WebSocket(this.url);
+      this.setupEventListeners();
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
+      this.handleReconnect();
+    }
+  }
+
+  private setupEventListeners() {
+    if (!this.socket) return;
+
+    this.socket.onopen = () => {
+      console.log('WebSocket connected');
+      this.reconnectAttempts = 0;
+      this.processMessageQueue();
+    };
+
+    this.socket.onclose = () => {
+      console.log('WebSocket disconnected');
+      this.handleReconnect();
+    };
+
+    this.socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    this.socket.onmessage = async (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'user_message') {
+          await this.handleUserMessage(message.content);
+        }
+      } catch (error) {
+        console.error('Error processing message:', error);
+      }
+    };
+  }
+
+  private async handleUserMessage(content: string) {
+    if (this.typingTimeout) {
+      clearTimeout(this.typingTimeout);
+    }
+
+    // Send typing indicator
+    this.sendMessage({
+      type: 'typing',
+      content: true
+    });
+
+    try {
+      const response = await generateAIResponse(content);
+      
+      // Clear typing indicator
+      this.sendMessage({
+        type: 'typing',
+        content: false
+      });
+
+      // Send AI response
+      this.sendMessage({
+        type: 'ai_message',
+        content: response
+      });
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      this.sendMessage({
+        type: 'error',
+        content: 'Sorry, I encountered an error while processing your message.'
+      });
+    }
+  }
+
+  private handleReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      setTimeout(() => {
+        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        this.connect();
+      }, this.reconnectDelay * this.reconnectAttempts);
+    } else {
+      console.error('Max reconnection attempts reached');
+      this.sendMessage({
+        type: 'error',
+        content: 'Connection lost. Please refresh the page.'
+      });
+    }
+  }
+
+  private processMessageQueue() {
+    if (this.isProcessing || this.messageQueue.length === 0) return;
+
+    this.isProcessing = true;
+    const message = this.messageQueue.shift();
+
+    if (message && this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(message);
+    }
+
+    this.isProcessing = false;
+    this.processMessageQueue();
+  }
+
+  public sendMessage(message: any) {
+    const messageString = JSON.stringify(message);
+    
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(messageString);
+    } else {
+      this.messageQueue.push(messageString);
+    }
   }
 
   public disconnect() {
-    console.log('Simulated connection closed');
-  }
-
-  public async sendMessage(message: WebSocketMessage) {
-    try {
-      // Show typing indicator
-      this.callbacks.forEach(callback => 
-        callback({
-          type: 'typing',
-          payload: { isTyping: true }
-        })
-      );
-
-      // Generate AI response
-      const aiResponse = await generateAIResponse(message.payload.content);
-
-      // Hide typing indicator and send response
-      this.callbacks.forEach(callback => {
-        callback({
-          type: 'typing',
-          payload: { isTyping: false }
-        });
-        callback({
-          type: 'message',
-          payload: { content: aiResponse }
-        });
-      });
-    } catch (error) {
-      console.error('Error in sendMessage:', error);
-      this.callbacks.forEach(callback => 
-        callback({
-          type: 'message',
-          payload: { content: "I apologize, there was an error generating a response. Please try again." }
-        })
-      );
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+    if (this.typingTimeout) {
+      clearTimeout(this.typingTimeout);
     }
   }
-
-  public onMessage(callback: (message: WebSocketMessage) => void) {
-    this.callbacks.push(callback);
-  }
-
-  public onTyping(callback: (isTyping: boolean) => void) {
-    // Handled through regular message callbacks now
-  }
-}
-
-export const wsService = WebSocketService.getInstance(); 
+} 

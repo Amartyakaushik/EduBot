@@ -1,4 +1,5 @@
-import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
+'use client';
+
 import { KeyboardEvent, useState } from 'react';
 
 interface ChatInputProps {
@@ -44,9 +45,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }
       <button
         onClick={handleSend}
         disabled={!message.trim() || isLoading || isSending}
-        className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:bg-gray-300"
+        className="rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600 disabled:bg-gray-300"
+        aria-label="Send message"
       >
-        <PaperAirplaneIcon className="h-5 w-5" />
+        {isLoading ? '...' : '➤'}
       </button>
     </div>
   );
