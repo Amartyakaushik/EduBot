@@ -5,6 +5,7 @@ import { useChatStore } from '@/store/chatStore';
 import React, { useEffect, useRef } from 'react';
 import { ChatInput } from '@/components/ChatInput';
 import { Header } from '@/components/Header';
+import type { Message } from '@/types';
 
 export default function Chat() {
   const { messages, isLoading, addMessage, setLoading, clearMessages } = useChatStore();
@@ -50,8 +51,7 @@ export default function Chat() {
       addMessage(aiMessage);
     } catch (error) {
       console.error('Error getting AI response:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      addMessage({
+      const errorMessage: Message = {
         id: Date.now(),
         text: 'Sorry, I encountered an error. Please try again.',
         sender: 'ai',
@@ -60,7 +60,8 @@ export default function Chat() {
           minute: '2-digit',
           hour12: true 
         })
-      });
+      };
+      addMessage(errorMessage);
     } finally {
       setLoading(false);
     }

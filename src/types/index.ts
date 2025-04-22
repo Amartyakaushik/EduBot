@@ -1,17 +1,13 @@
 export interface Message {
-  id: string;
-  content: string;
+  id: number;
+  text: string;
   sender: 'user' | 'ai';
-  timestamp: number;
-  category?: 'programming' | 'math' | 'science' | 'general';
+  timestamp: string;
 }
 
 export interface ChatState {
   messages: Message[];
   isLoading: boolean;
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
-  setLoading: (loading: boolean) => void;
-  clearMessages: () => void;
 }
 
 export interface User {
