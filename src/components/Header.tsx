@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useChatStore } from '@/store/chatStore';
+import { SessionManager } from './SessionManager';
 
 export const Header = () => {
   const { clearMessages } = useChatStore();
@@ -29,6 +30,8 @@ export const Header = () => {
               </div>
             </div>
           </div>
+
+          <SessionManager />
 
           <button
             onClick={() => setShowConfirm(true)}

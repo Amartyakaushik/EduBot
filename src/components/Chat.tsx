@@ -1,11 +1,12 @@
 'use client';
 
-import { generateAIResponse } from '@/services/ai';
-import { useChatStore } from '@/store/chatStore';
-import React, { useEffect, useRef } from 'react';
 import { ChatInput } from '@/components/ChatInput';
 import { Header } from '@/components/Header';
+import { generateAIResponse } from '@/services/ai';
+import { useChatStore } from '@/store/chatStore';
 import type { Message } from '@/types';
+import { useEffect, useRef } from 'react';
+import { SessionWarning } from './SessionWarning';
 
 export default function Chat() {
   const { messages, isLoading, addMessage, setLoading, clearMessages } = useChatStore();
@@ -141,6 +142,7 @@ export default function Chat() {
           <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
       </div>
+      <SessionWarning />
     </div>
   );
 } 
